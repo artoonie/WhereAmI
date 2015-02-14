@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D49947591A8EC9B600899EE5 /* SpyRegion.m in Sources */ = {isa = PBXBuildFile; fileRef = D49947581A8EC9B600899EE5 /* SpyRegion.m */; };
+		D499475B1A8ECD6600899EE5 /* config-private.m in Sources */ = {isa = PBXBuildFile; fileRef = D499475A1A8ECD6600899EE5 /* config-private.m */; };
+		D499475E1A8ECF5000899EE5 /* GeofenceManager.m in Sources */ = {isa = PBXBuildFile; fileRef = D499475D1A8ECF5000899EE5 /* GeofenceManager.m */; };
+		D49947611A8ED1A700899EE5 /* SlackInterface.m in Sources */ = {isa = PBXBuildFile; fileRef = D49947601A8ED1A700899EE5 /* SlackInterface.m */; };
 		D4F16B491A8CFAAC0063E766 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = D4F16B481A8CFAAC0063E766 /* main.m */; };
 		D4F16B4C1A8CFAAC0063E766 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = D4F16B4B1A8CFAAC0063E766 /* AppDelegate.m */; };
 		D4F16B4F1A8CFAAC0063E766 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = D4F16B4E1A8CFAAC0063E766 /* ViewController.m */; };
@@ -28,6 +32,14 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		D49947551A8EC71A00899EE5 /* config.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
+		D49947571A8EC9B600899EE5 /* SpyRegion.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SpyRegion.h; sourceTree = "<group>"; };
+		D49947581A8EC9B600899EE5 /* SpyRegion.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SpyRegion.m; sourceTree = "<group>"; };
+		D499475A1A8ECD6600899EE5 /* config-private.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "config-private.m"; sourceTree = "<group>"; };
+		D499475C1A8ECF5000899EE5 /* GeofenceManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GeofenceManager.h; sourceTree = "<group>"; };
+		D499475D1A8ECF5000899EE5 /* GeofenceManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeofenceManager.m; sourceTree = "<group>"; };
+		D499475F1A8ED1A700899EE5 /* SlackInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SlackInterface.h; sourceTree = "<group>"; };
+		D49947601A8ED1A700899EE5 /* SlackInterface.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SlackInterface.m; sourceTree = "<group>"; };
 		D4F16B431A8CFAAC0063E766 /* WhereAmI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WhereAmI.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D4F16B471A8CFAAC0063E766 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		D4F16B481A8CFAAC0063E766 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
@@ -89,10 +101,18 @@
 				D4F16B4B1A8CFAAC0063E766 /* AppDelegate.m */,
 				D4F16B4D1A8CFAAC0063E766 /* ViewController.h */,
 				D4F16B4E1A8CFAAC0063E766 /* ViewController.m */,
+				D49947551A8EC71A00899EE5 /* config.h */,
+				D499475A1A8ECD6600899EE5 /* config-private.m */,
 				D4F16B501A8CFAAD0063E766 /* Main.storyboard */,
 				D4F16B531A8CFAAD0063E766 /* Images.xcassets */,
 				D4F16B551A8CFAAD0063E766 /* LaunchScreen.xib */,
 				D4F16B461A8CFAAC0063E766 /* Supporting Files */,
+				D49947571A8EC9B600899EE5 /* SpyRegion.h */,
+				D49947581A8EC9B600899EE5 /* SpyRegion.m */,
+				D499475C1A8ECF5000899EE5 /* GeofenceManager.h */,
+				D499475D1A8ECF5000899EE5 /* GeofenceManager.m */,
+				D499475F1A8ED1A700899EE5 /* SlackInterface.h */,
+				D49947601A8ED1A700899EE5 /* SlackInterface.m */,
 			);
 			path = WhereAmI;
 			sourceTree = "<group>";
@@ -225,7 +245,11 @@
 			files = (
 				D4F16B4F1A8CFAAC0063E766 /* ViewController.m in Sources */,
 				D4F16B4C1A8CFAAC0063E766 /* AppDelegate.m in Sources */,
+				D49947591A8EC9B600899EE5 /* SpyRegion.m in Sources */,
+				D499475B1A8ECD6600899EE5 /* config-private.m in Sources */,
 				D4F16B491A8CFAAC0063E766 /* main.m in Sources */,
+				D499475E1A8ECF5000899EE5 /* GeofenceManager.m in Sources */,
+				D49947611A8ED1A700899EE5 /* SlackInterface.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
