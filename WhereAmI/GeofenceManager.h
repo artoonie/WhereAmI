@@ -16,4 +16,7 @@
 @property (strong, nonatomic) CLLocationManager *locationManager;
 @property (strong, nonatomic) NSMutableSet *circularRegions;
 
+- (void)clearAllGeofences;
+- (void)recreateGeofences;
+
 @end

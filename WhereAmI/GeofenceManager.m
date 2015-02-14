@@ -30,30 +30,41 @@
         [self.locationManager setDelegate:self];
         [self.locationManager setDesiredAccuracy:kCLLocationAccuracyThreeKilometers];
 
-        // Clear existing regions
-        for (CLRegion *region in self.locationManager.monitoredRegions) {
-            [self.locationManager stopMonitoringForRegion:region];
-        }
-
-        // Initialize locations
-        NSMutableSet* spyRegions = [WhereAmIConfig getSpyRegions];
-
-        for(SpyRegion* spyRegion in spyRegions)
-        {
-            CLCircularRegion *region = [[CLCircularRegion alloc]
-                initWithCenter:[spyRegion.location coordinate]
-                        radius:fmin(self.locationManager.maximumRegionMonitoringDistance, 150.)
-                    identifier:[[NSUUID UUID] UUIDString]];
-            [self.circularRegions addObject:region];
-        }
-
-        // Start Monitoring Region
-        for(CLCircularRegion* region in self.circularRegions)
-        {
-            [self.locationManager startMonitoringForRegion:region];
-        }
+        // Clear and repopulate regions
+        [self recreateGeofences];
     }
     return self;
+}
+
+- (void)recreateGeofences
+{
+    // Always clear first to prevent ghosts if someone repeatedly calls this function
+    [self clearAllGeofences];
+
+    NSMutableSet* spyRegions = [WhereAmIConfig getSpyRegions];
+    
+    for(SpyRegion* spyRegion in spyRegions)
+    {
+        CLCircularRegion *region = [[CLCircularRegion alloc]
+                                    initWithCenter:[spyRegion.location coordinate]
+                                    radius:fmin(self.locationManager.maximumRegionMonitoringDistance, 150.)
+                                    identifier:[[NSUUID UUID] UUIDString]];
+        [self.circularRegions addObject:region];
+    }
+    
+    // Start Monitoring Region
+    for(CLCircularRegion* region in self.circularRegions)
+    {
+        [self.locationManager startMonitoringForRegion:region];
+    }
+}
+
+- (void)clearAllGeofences
+{
+    for (CLRegion *region in self.locationManager.monitoredRegions)
+    {
+        [self.locationManager stopMonitoringForRegion:region];
+    }
 }
 
 - (void)requestAuthorization
