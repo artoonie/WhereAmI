@@ -6,8 +6,10 @@
 //  Copyright (c) 2015 adobe. All rights reserved.
 //
 
-#import "ViewController.h"
+#import "config.h"
 #import "GeofenceManager.h"
+#import "ViewController.h"
+#import <GoogleMaps/GoogleMaps.h>
 
 NSString* PERSISTENT_PRIVATE_MODE_KEY = @"WHEREAMI_PRIVATEMODE";
 
@@ -19,6 +21,8 @@ NSString* PERSISTENT_PRIVATE_MODE_KEY = @"WHEREAMI_PRIVATEMODE";
 @end
 
 @implementation ViewController
+
+GMSMapView* mapView;
 
 - (void) awakeFromNib {
     [super awakeFromNib];
@@ -34,6 +38,17 @@ NSString* PERSISTENT_PRIVATE_MODE_KEY = @"WHEREAMI_PRIVATEMODE";
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     self.isPrivateModeOn = [defaults boolForKey:PERSISTENT_PRIVATE_MODE_KEY];
     [self updatePrivateMode:self.isPrivateModeOn];
+}
+
+
+- (void)loadView {
+    [GMSServices provideAPIKey:[WhereAmIConfig getGoogleMapsAPIKey]];
+
+    GMSCameraPosition *camera = [GMSCameraPosition cameraWithLatitude:1.285
+                                                            longitude:103.848
+                                                                 zoom:12];
+    mapView = [GMSMapView mapWithFrame:CGRectZero camera:camera];
+    self.view = mapView;
 }
 
 - (void)viewDidLoad {
