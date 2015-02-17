@@ -10,7 +10,6 @@
 #import "GeofenceManager.h"
 #import "SpyRegion.h"
 #import "ViewController.h"
-#import <GoogleMaps/GoogleMaps.h>
 
 NSString* PERSISTENT_PRIVATE_MODE_KEY = @"WHEREAMI_PRIVATEMODE";
 
@@ -18,6 +17,7 @@ NSString* PERSISTENT_PRIVATE_MODE_KEY = @"WHEREAMI_PRIVATEMODE";
 
 @property (strong, nonatomic) GeofenceManager *geofenceManager;
 @property bool isPrivateModeOn;
+@property CLLocation* lastTouchedLocation;
 
 @end
 
@@ -41,6 +41,21 @@ GMSMapView* mapView;
     [self updatePrivateMode:self.isPrivateModeOn];
 }
 
+- (void)createMapMarkerForRegion:(SpyRegion*)spyRegion
+{
+    CLLocationCoordinate2D position = spyRegion.location.coordinate;
+    GMSMarker *marker = [GMSMarker markerWithPosition:position];
+    marker.title = spyRegion.name;
+    marker.map = mapView;
+    
+    GMSCircle *circ = [GMSCircle circleWithPosition:position
+                                             radius:1000];
+    circ.fillColor = [UIColor colorWithRed:1.0 green:0 blue:0 alpha:0.1];
+    circ.strokeColor = [UIColor redColor];
+    circ.strokeWidth = 1;
+    circ.map = mapView;
+}
+
 - (void)loadView
 {
     [GMSServices provideAPIKey:[WhereAmIConfig getGoogleMapsAPIKey]];
@@ -49,22 +64,14 @@ GMSMapView* mapView;
                                                             longitude:-122.0
                                                                  zoom:9];
     mapView = [GMSMapView mapWithFrame:CGRectZero camera:camera];
+    mapView.delegate = self;
+
     self.view = mapView;
 
     NSMutableSet* spyRegions = [WhereAmIConfig getSpyRegions];
     for(SpyRegion* spyRegion in spyRegions)
     {
-        CLLocationCoordinate2D position = spyRegion.location.coordinate;
-        GMSMarker *marker = [GMSMarker markerWithPosition:position];
-        marker.title = spyRegion.name;
-        marker.map = mapView;
-
-        GMSCircle *circ = [GMSCircle circleWithPosition:position
-                                                 radius:1000];
-        circ.fillColor = [UIColor colorWithRed:1.0 green:0 blue:0 alpha:0.1];
-        circ.strokeColor = [UIColor redColor];
-        circ.strokeWidth = 1;
-        circ.map = mapView;
+        [self createMapMarkerForRegion:spyRegion];
     }
 }
 
@@ -101,6 +108,43 @@ GMSMapView* mapView;
 
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     [defaults setBool:isOn forKey:PERSISTENT_PRIVATE_MODE_KEY];
+}
+
+#pragma mark - GMSMapViewDelegate
+
+- (void)mapView:(GMSMapView *)mapView
+        didTapAtCoordinate:(CLLocationCoordinate2D)coordinate {
+    self.lastTouchedLocation = [[CLLocation alloc] initWithLatitude:coordinate.latitude
+                                                          longitude:coordinate.longitude];
+
+    UIAlertView * alert = [[UIAlertView alloc] initWithTitle:@"New Geofence"
+                                                     message:@"Location Name"
+                                                    delegate:self
+                                           cancelButtonTitle:@"Cancel"
+                                           otherButtonTitles:@"Create", nil];
+    alert.alertViewStyle = UIAlertViewStylePlainTextInput;
+    UITextField * alertTextField = [alert textFieldAtIndex:0];
+    alertTextField.keyboardType = UIAlertViewStylePlainTextInput;
+    alertTextField.placeholder = @"Name of Location";
+    [alert show];
+}
+
+- (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex
+{
+    if(buttonIndex == 0)
+    {
+        NSLog(@"Canceled");
+    }
+    else
+    {
+        assert(self.lastTouchedLocation != nil);
+        
+        NSString* name = [[alertView textFieldAtIndex:0] text];
+        SpyRegion* region = [[SpyRegion alloc] initWithName:name
+                                                andLocation:self.lastTouchedLocation
+                                                  isPrivate:false];
+        [self createMapMarkerForRegion:region];
+    }
 }
 
 @end
