@@ -24,11 +24,18 @@ NSString* PERSISTENT_PRIVATE_MODE_KEY = @"WHEREAMI_PRIVATEMODE";
 @implementation ViewController
 
 GMSMapView* mapView;
+UILabel* privateModeStatusLabel;
 
 - (void) awakeFromNib {
     [super awakeFromNib];
 
+    [GMSServices provideAPIKey:[WhereAmIConfig getGoogleMapsAPIKey]];
+
     self.geofenceManager = [[GeofenceManager alloc] init];
+
+    // Create our view
+    CGRect frame = [[UIScreen mainScreen] applicationFrame];
+    self.view = [[UIView alloc] initWithFrame:frame];
 
     // Handle a doubletap gesture
     UITapGestureRecognizer *tapGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTapGesture:)];
@@ -38,6 +45,30 @@ GMSMapView* mapView;
     // Default value of boolForKey is false, which is what we want.
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     self.isPrivateModeOn = [defaults boolForKey:PERSISTENT_PRIVATE_MODE_KEY];
+
+    // Create map view
+    GMSCameraPosition *camera = [GMSCameraPosition cameraWithLatitude:37.35
+                                                            longitude:-122.0
+                                                                 zoom:9];
+    mapView = [GMSMapView mapWithFrame:CGRectZero camera:camera];
+    mapView.delegate = self;
+
+    // Move the map view to the bottom 3/4 of the screen
+    CGRect mapFrame = frame;
+    mapFrame.origin.y += 1.0*mapFrame.size.height/4;
+    mapFrame.size.height = 3.0*mapFrame.size.height/4;
+    [mapView setFrame:mapFrame];
+    [self.view addSubview:mapView];
+
+    // Set up the status label
+    CGRect labelFrame = frame;
+    labelFrame.size.height = 1.0*labelFrame.size.height/4;
+    privateModeStatusLabel = [[UILabel alloc] initWithFrame:labelFrame];
+    privateModeStatusLabel.adjustsFontSizeToFitWidth = YES;
+    privateModeStatusLabel.textAlignment = NSTextAlignmentCenter;
+    [self.view addSubview:privateModeStatusLabel];
+
+    // Initialize with current private mode
     [self updatePrivateMode:self.isPrivateModeOn];
 }
 
@@ -58,16 +89,6 @@ GMSMapView* mapView;
 
 - (void)loadView
 {
-    [GMSServices provideAPIKey:[WhereAmIConfig getGoogleMapsAPIKey]];
-
-    GMSCameraPosition *camera = [GMSCameraPosition cameraWithLatitude:37.35
-                                                            longitude:-122.0
-                                                                 zoom:9];
-    mapView = [GMSMapView mapWithFrame:CGRectZero camera:camera];
-    mapView.delegate = self;
-
-    self.view = mapView;
-
     NSMutableSet* spyRegions = [WhereAmIConfig getSpyRegions];
     for(SpyRegion* spyRegion in spyRegions)
     {
@@ -98,13 +119,16 @@ GMSMapView* mapView;
         NSLog(@"Private mode on: clearing geofences.");
         [self.geofenceManager clearAllGeofences];
         self.view.backgroundColor = [UIColor blackColor];
+        privateModeStatusLabel.text = @"Big Brother is Taking a Nap";
     }
     else
     {
         NSLog(@"Private mode off: recreating geofences.");
         [self.geofenceManager recreateGeofences];
         self.view.backgroundColor = [UIColor redColor];
+        privateModeStatusLabel.text = @"Big Brother is Watching";
     }
+    privateModeStatusLabel.textColor = [UIColor whiteColor];
 
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     [defaults setBool:isOn forKey:PERSISTENT_PRIVATE_MODE_KEY];
