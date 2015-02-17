@@ -25,4 +25,6 @@
                 andLocation:(CLLocation*)location
                   isPrivate:(bool)isPrivate;
 
+- (CLCircularRegion*) getSurroundingRegion;
+
 @end

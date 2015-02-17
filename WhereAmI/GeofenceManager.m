@@ -11,9 +11,11 @@
 #import "SlackInterface.h"
 #import "spyRegion.h"
 
+NSString* keySpyList = @"WHEREAMI_COORDINATES";
+
 @implementation GeofenceManager
 
-- (instancetype)init
+- (instancetype) init
 {
     if (self = [super init])
     {
@@ -21,7 +23,7 @@
 
         // Initialize properties
         self.locationManager = [CLLocationManager new];
-        self.circularRegions = [NSMutableSet new];
+        self.spyRegions = [self loadSpyRegions];
 
         // Request authorization to register regions
         [self requestAuthorization];
@@ -30,41 +32,97 @@
         [self.locationManager setDelegate:self];
         [self.locationManager setDesiredAccuracy:kCLLocationAccuracyThreeKilometers];
 
-        // Clear and repopulate regions
-        [self recreateGeofences];
+        // Enable these geofences
+        [self enableGeofences];
     }
     return self;
 }
 
-- (void)recreateGeofences
+#pragma mark Reading, writing, and modifying geofences
+
+- (void) enableGeofences
 {
     // Always clear first to prevent ghosts if someone repeatedly calls this function
-    [self clearAllGeofences];
+    [self disableGeofences];
 
-    NSMutableSet* spyRegions = [WhereAmIConfig getSpyRegions];
-    
-    for(SpyRegion* spyRegion in spyRegions)
+    // Create circular regions and monitor them
+    for(SpyRegion* spyRegion in self.spyRegions)
     {
-        CLCircularRegion *region = [[CLCircularRegion alloc]
-                                    initWithCenter:[spyRegion.location coordinate]
-                                    radius:fmin(self.locationManager.maximumRegionMonitoringDistance, 150.)
-                                    identifier:[[NSUUID UUID] UUIDString]];
-        [self.circularRegions addObject:region];
-    }
-    
-    // Start Monitoring Region
-    for(CLCircularRegion* region in self.circularRegions)
-    {
-        [self.locationManager startMonitoringForRegion:region];
+        [self.locationManager startMonitoringForRegion:[spyRegion getSurroundingRegion]];
     }
 }
 
-- (void)clearAllGeofences
+- (void) disableGeofences
 {
     for (CLRegion *region in self.locationManager.monitoredRegions)
     {
         [self.locationManager stopMonitoringForRegion:region];
     }
+}
+
+- (void) addGeofence:(SpyRegion *)region
+{
+    [self.spyRegions addObject:region];
+    [self saveSpyRegions];
+}
+
+- (void) removeGeofence:(SpyRegion*)region
+{
+    [self.spyRegions removeObject:region];
+    [self saveSpyRegions];
+}
+
+- (void) removeGeofenceAtCoordinate:(CLLocationCoordinate2D)coordinate
+{
+    SpyRegion* region = [self getSpyRegionAtCoordinate:coordinate];
+    assert(region != nil);
+    [self removeGeofence:region];
+}
+
+- (void)saveSpyRegions
+{
+    NSData* data = [NSKeyedArchiver archivedDataWithRootObject:self.spyRegions];
+    [[NSUserDefaults standardUserDefaults] setObject:data forKey:keySpyList];
+}
+
+- (NSMutableSet*) loadSpyRegions
+{
+    NSData* data = [[NSUserDefaults standardUserDefaults] objectForKey:keySpyList];
+    NSMutableSet* spyRegions = [NSKeyedUnarchiver unarchiveObjectWithData:data];
+
+    if([spyRegions count] == 0)
+        return [WhereAmIConfig getSpyRegions];
+    else
+        return spyRegions;
+}
+
+
+#pragma mark Convenience functions
+
+- (SpyRegion*) getSpyRegionAtCoordinate:(CLLocationCoordinate2D) coordinate;
+{
+    for(SpyRegion* spyRegion in self.spyRegions)
+    {
+        if([[spyRegion getSurroundingRegion] containsCoordinate:coordinate])
+        {
+            return spyRegion;
+        }
+    }
+
+    return nil;
+}
+
+- (SpyRegion*) getSpyRegionInRegion:(CLCircularRegion*) region
+{
+    for(SpyRegion* spyRegion in self.spyRegions)
+    {
+        if([region containsCoordinate:spyRegion.location.coordinate])
+        {
+            return spyRegion;
+        }
+    }
+
+    return nil;
 }
 
 - (void)requestAuthorization
@@ -95,6 +153,8 @@
     }
 }
 
+#pragma mark Location Manager Delegates
+
 - (void)locationManager:(CLLocationManager *)manager
       didDetermineState:(CLRegionState)state
               forRegion:(CLRegion *)region
@@ -119,44 +179,35 @@
 - (void)locationManager:(CLLocationManager *)manager
          didEnterRegion:(CLRegion *)region
 {
-    NSMutableSet* spyRegions = [WhereAmIConfig getSpyRegions];
     CLCircularRegion* circularRegion = (CLCircularRegion*)region;
-    for(SpyRegion* spyRegion in spyRegions)
+    SpyRegion* spyRegion = [self getSpyRegionInRegion:circularRegion];
+    assert(spyRegion != nil);
+
+    NSString *message = [NSString stringWithFormat:@"%@%@.",
+                         @"Armin is now working from ",
+                         spyRegion.name];
+
+    // Do not post about home offices or other private info unless it's between
+    // 5am and 11am on a weekday
+    if(spyRegion.isPrivate)
     {
-        if([circularRegion containsCoordinate:spyRegion.location.coordinate])
+        NSDate *date = [NSDate date];
+        NSDateComponents *components = [[NSCalendar currentCalendar]
+                                        components:NSCalendarUnitHour
+                                          fromDate:date];
+
+        if([[NSCalendar currentCalendar] isDateInWeekend:date])
         {
-            NSString *message = [NSString stringWithFormat:@"%@%@.",
-                                 @"Armin is now working from ",
-                                 spyRegion.name];
-
-
-            // Do not post about home offices or other private info unless it's between
-            // 5am and 11am on a weekday
-            if(spyRegion.isPrivate)
-            {
-                NSDate *date = [NSDate date];
-                NSDateComponents *components = [[NSCalendar currentCalendar]
-                                                components:NSCalendarUnitHour
-                                                  fromDate:date];
-
-                if([[NSCalendar currentCalendar] isDateInWeekend:date])
-                {
-                    NSLog(@"It's the weekend - not posting location.");
-                    return;
-                }
-                else if([components hour] < 5 || [components hour] > 11)
-                {
-                    NSLog(@"It's not the morning - not posting location.");
-                    return;
-                }
-            }
-            [SlackInterface postMessageToSlack:message];
+            NSLog(@"It's the weekend - not posting location.");
+            return;
+        }
+        else if([components hour] < 5 || [components hour] > 11)
+        {
+            NSLog(@"It's not the morning - not posting location.");
             return;
         }
     }
-
-    NSLog(@"Yikes! We entered an unknown region.....somebody help us.");
-
+    [SlackInterface postMessageToSlack:message];
     return;
 }
 

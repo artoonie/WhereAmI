@@ -11,13 +11,20 @@
 #import "SpyRegion.h"
 #import "ViewController.h"
 
-NSString* PERSISTENT_PRIVATE_MODE_KEY = @"WHEREAMI_PRIVATEMODE";
+NSString* keyPrivateMode = @"WHEREAMI_PRIVATEMODE";
 
 @interface ViewController ()
 
 @property (strong, nonatomic) GeofenceManager *geofenceManager;
 @property bool isPrivateModeOn;
+
+// Properties saved for event calls
 @property CLLocation* lastTouchedLocation;
+@property GMSMarker* lastTouchedMarker;
+enum AlertTags {
+    DeleteGeofence,
+    CreateGeofence
+};
 
 @end
 
@@ -44,13 +51,14 @@ UILabel* privateModeStatusLabel;
 
     // Default value of boolForKey is false, which is what we want.
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    self.isPrivateModeOn = [defaults boolForKey:PERSISTENT_PRIVATE_MODE_KEY];
+    self.isPrivateModeOn = [defaults boolForKey:keyPrivateMode];
 
     // Create map view
     GMSCameraPosition *camera = [GMSCameraPosition cameraWithLatitude:37.35
                                                             longitude:-122.0
                                                                  zoom:9];
     mapView = [GMSMapView mapWithFrame:CGRectZero camera:camera];
+    mapView.settings.myLocationButton = YES;
     mapView.delegate = self;
 
     // Move the map view to the bottom 3/4 of the screen
@@ -70,6 +78,45 @@ UILabel* privateModeStatusLabel;
 
     // Initialize with current private mode
     [self updatePrivateMode:self.isPrivateModeOn];
+
+    // Add markers to the map
+    [self createMapMarkers];
+}
+
+- (void)loadView
+{
+}
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+
+    NSMutableSet* spyRegions = [self.geofenceManager spyRegions];
+
+    for(SpyRegion* spyRegion in spyRegions)
+    {
+        [self createMapMarkerForRegion:spyRegion];
+    }
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+- (void)handleTapGesture:(UITapGestureRecognizer *)sender
+{
+    [self updatePrivateMode:!self.isPrivateModeOn];
+}
+
+- (void)createMapMarkers
+{
+    [mapView clear];
+    NSMutableSet* spyRegions = [self.geofenceManager spyRegions];
+
+    for(SpyRegion* spyRegion in spyRegions)
+    {
+        [self createMapMarkerForRegion:spyRegion];
+    }
 }
 
 - (void)createMapMarkerForRegion:(SpyRegion*)spyRegion
@@ -87,29 +134,6 @@ UILabel* privateModeStatusLabel;
     circ.map = mapView;
 }
 
-- (void)loadView
-{
-    NSMutableSet* spyRegions = [WhereAmIConfig getSpyRegions];
-    for(SpyRegion* spyRegion in spyRegions)
-    {
-        [self createMapMarkerForRegion:spyRegion];
-    }
-}
-
-- (void)viewDidLoad {
-    [super viewDidLoad];
-}
-
-- (void)didReceiveMemoryWarning {
-    [super didReceiveMemoryWarning];
-    // Dispose of any resources that can be recreated.
-}
-
-- (void)handleTapGesture:(UITapGestureRecognizer *)sender
-{
-    [self updatePrivateMode:!self.isPrivateModeOn];
-}
-
 - (void) updatePrivateMode:(bool)isOn
 {
     self.isPrivateModeOn = isOn;
@@ -117,21 +141,21 @@ UILabel* privateModeStatusLabel;
     if(isOn)
     {
         NSLog(@"Private mode on: clearing geofences.");
-        [self.geofenceManager clearAllGeofences];
+        [self.geofenceManager disableGeofences];
         self.view.backgroundColor = [UIColor blackColor];
         privateModeStatusLabel.text = @"Big Brother is Taking a Nap";
     }
     else
     {
         NSLog(@"Private mode off: recreating geofences.");
-        [self.geofenceManager recreateGeofences];
+        [self.geofenceManager enableGeofences];
         self.view.backgroundColor = [UIColor redColor];
         privateModeStatusLabel.text = @"Big Brother is Watching";
     }
     privateModeStatusLabel.textColor = [UIColor whiteColor];
 
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    [defaults setBool:isOn forKey:PERSISTENT_PRIVATE_MODE_KEY];
+    [defaults setBool:isOn forKey:keyPrivateMode];
 }
 
 #pragma mark - GMSMapViewDelegate
@@ -150,9 +174,24 @@ UILabel* privateModeStatusLabel;
     UITextField * alertTextField = [alert textFieldAtIndex:0];
     alertTextField.keyboardType = UIAlertViewStylePlainTextInput;
     alertTextField.placeholder = @"Name of Location";
+    alert.tag = CreateGeofence;
     [alert show];
 }
 
+- (void)mapView:(GMSMapView *)mapView
+    didTapInfoWindowOfMarker:(GMSMarker *)marker;
+{
+    self.lastTouchedMarker = marker;
+    UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Delete Geofence?"
+                                                     message:@""
+                                                    delegate:self
+                                           cancelButtonTitle:@"Cancel"
+                                           otherButtonTitles:@"Delete", nil];
+    alert.tag = DeleteGeofence;
+    [alert show];
+}
+
+#pragma mark Responders
 - (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex
 {
     if(buttonIndex == 0)
@@ -161,13 +200,29 @@ UILabel* privateModeStatusLabel;
     }
     else
     {
-        assert(self.lastTouchedLocation != nil);
-        
-        NSString* name = [[alertView textFieldAtIndex:0] text];
-        SpyRegion* region = [[SpyRegion alloc] initWithName:name
-                                                andLocation:self.lastTouchedLocation
-                                                  isPrivate:false];
-        [self createMapMarkerForRegion:region];
+        switch(alertView.tag)
+        {
+            case DeleteGeofence:
+            {
+                assert(self.lastTouchedMarker != nil);
+                [self.geofenceManager removeGeofenceAtCoordinate:self.lastTouchedMarker.position];
+                [self createMapMarkers];
+            }
+                break;
+
+            case CreateGeofence:
+            {
+                assert(self.lastTouchedLocation != nil);
+
+                NSString* name = [[alertView textFieldAtIndex:0] text];
+                SpyRegion* region = [[SpyRegion alloc] initWithName:name
+                                                        andLocation:self.lastTouchedLocation
+                                                          isPrivate:false];
+                [self.geofenceManager addGeofence:region];
+                [self createMapMarkerForRegion:region];
+            }
+                break;
+        }
     }
 }
 

@@ -24,4 +24,30 @@
     return self;
 }
 
+- (id)initWithCoder:(NSCoder *)decoder
+{
+    if (self = [super init]) {
+        self.name = [decoder decodeObjectForKey:@"name"];
+        self.location = [decoder decodeObjectForKey:@"location"];
+        self.isPrivate = [decoder decodeBoolForKey:@"isPrivate"];
+    }
+    return self;
+}
+
+- (void)encodeWithCoder:(NSCoder *)encoder
+{
+    [encoder encodeObject:self.name forKey:@"name"];
+    [encoder encodeObject:self.location forKey:@"location"];
+    [encoder encodeBool:self.isPrivate forKey:@"isPrivate"];
+}
+
+- (CLCircularRegion*) getSurroundingRegion
+{
+    CLCircularRegion *region = [[CLCircularRegion alloc]
+                                initWithCenter:[self.location coordinate]
+                                radius: 150.
+                                identifier:[[NSUUID UUID] UUIDString]];
+    return region;
+}
+
 @end
