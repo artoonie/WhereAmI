@@ -8,6 +8,7 @@
 
 #import "config.h"
 #import "GeofenceManager.h"
+#import "SpyRegion.h"
 #import "ViewController.h"
 #import <GoogleMaps/GoogleMaps.h>
 
@@ -40,15 +41,31 @@ GMSMapView* mapView;
     [self updatePrivateMode:self.isPrivateModeOn];
 }
 
-
-- (void)loadView {
+- (void)loadView
+{
     [GMSServices provideAPIKey:[WhereAmIConfig getGoogleMapsAPIKey]];
 
-    GMSCameraPosition *camera = [GMSCameraPosition cameraWithLatitude:1.285
-                                                            longitude:103.848
-                                                                 zoom:12];
+    GMSCameraPosition *camera = [GMSCameraPosition cameraWithLatitude:37.35
+                                                            longitude:-122.0
+                                                                 zoom:9];
     mapView = [GMSMapView mapWithFrame:CGRectZero camera:camera];
     self.view = mapView;
+
+    NSMutableSet* spyRegions = [WhereAmIConfig getSpyRegions];
+    for(SpyRegion* spyRegion in spyRegions)
+    {
+        CLLocationCoordinate2D position = spyRegion.location.coordinate;
+        GMSMarker *marker = [GMSMarker markerWithPosition:position];
+        marker.title = spyRegion.name;
+        marker.map = mapView;
+
+        GMSCircle *circ = [GMSCircle circleWithPosition:position
+                                                 radius:1000];
+        circ.fillColor = [UIColor colorWithRed:1.0 green:0 blue:0 alpha:0.1];
+        circ.strokeColor = [UIColor redColor];
+        circ.strokeWidth = 1;
+        circ.map = mapView;
+    }
 }
 
 - (void)viewDidLoad {
