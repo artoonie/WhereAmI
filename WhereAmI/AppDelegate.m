@@ -19,8 +19,6 @@
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     
-    [GMSServices provideAPIKey:[WhereAmIConfig getGoogleMapsAPIKey]];
-
     return YES;
 }
 

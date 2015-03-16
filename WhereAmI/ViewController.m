@@ -58,8 +58,9 @@ UILabel* privateModeStatusLabel;
                                                             longitude:-122.0
                                                                  zoom:9];
     mapView = [GMSMapView mapWithFrame:CGRectZero camera:camera];
-    mapView.settings.myLocationButton = YES;
-    mapView.delegate = self;
+    [mapView.settings setMyLocationButton:YES];
+    [mapView setMyLocationEnabled:YES];
+    [mapView setDelegate:self];
 
     // Move the map view to the bottom 3/4 of the screen
     CGRect mapFrame = frame;

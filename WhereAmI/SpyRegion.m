@@ -45,7 +45,7 @@
 {
     CLCircularRegion *region = [[CLCircularRegion alloc]
                                 initWithCenter:[self.location coordinate]
-                                radius: 150.
+                                radius: 1000.
                                 identifier:[[NSUUID UUID] UUIDString]];
     return region;
 }

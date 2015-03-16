@@ -27,10 +27,11 @@ NSString* keySpyList = @"WHEREAMI_COORDINATES";
 
         // Request authorization to register regions
         [self requestAuthorization];
+        [self.locationManager startUpdatingLocation];
 
         // Configure Location Manager
         [self.locationManager setDelegate:self];
-        [self.locationManager setDesiredAccuracy:kCLLocationAccuracyThreeKilometers];
+        [self.locationManager setDesiredAccuracy:kCLLocationAccuracyKilometer];
 
         // Enable these geofences
         [self enableGeofences];
@@ -179,8 +180,20 @@ NSString* keySpyList = @"WHEREAMI_COORDINATES";
 - (void)locationManager:(CLLocationManager *)manager
          didEnterRegion:(CLRegion *)region
 {
+    // Ensure that spy regions have been loaded,
+    // since the app could have been killed then relaunched
+    GeofenceManager* mgr;
+    if(self)
+    {
+        mgr = self;
+    }
+    else
+    {
+        mgr = [[GeofenceManager alloc] init];
+    }
+
     CLCircularRegion* circularRegion = (CLCircularRegion*)region;
-    SpyRegion* spyRegion = [self getSpyRegionInRegion:circularRegion];
+    SpyRegion* spyRegion = [mgr getSpyRegionInRegion:circularRegion];
     assert(spyRegion != nil);
 
     NSString *message = [NSString stringWithFormat:@"%@%@.",
